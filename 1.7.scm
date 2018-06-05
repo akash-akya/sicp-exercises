@@ -13,9 +13,13 @@
            0.0000001))))
 
   (define (nw-square-root x guess)
+    (display guess)
+    (display "\n")
+
     (if (good-enough? guess)
         guess
         (nw-square-root x (average guess (/ x guess)))))
 
   (nw-square-root x 1.0))
+
 
