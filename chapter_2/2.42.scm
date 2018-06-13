@@ -58,6 +58,45 @@
 ;; respect to each other.)
 
 
+(define empty-board nil)
+
+(define (col board k)
+  (if (= k 0)
+      (car board)
+      (col (cdr board) (- k 1))))
+
+(define (row col k) (col col k))
+
+(define (get board c r)
+  (row (col board c) r))
+
+(define (set board c r val)
+  ())
+
+(define (adjoin-position row k rest)
+  ())
+
+(define (queens board-size)
+  (define (queen-cols k)
+    (if (= k 0)
+        (list empty-board)
+        (filter
+         (lambda (positions)
+           (safe? k positions))
+         (flatmap
+          (lambda (rest-of-queens)
+            (map (lambda (new-row)
+                   (adjoin-position
+                    new-row
+                    k
+                    rest-of-queens))
+                 (enumerate-interval
+                  1
+                  board-size)))
+          (queen-cols (- k 1))))))
+  (queen-cols board-size))
+
+
 
 ;; test
 ;; (define (test)
