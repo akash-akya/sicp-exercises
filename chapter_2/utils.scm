@@ -1,5 +1,6 @@
 #lang sicp
 (#%require racket/provide)
+(#%require racket/base)
 
 (define (square x) (* x x))
 
@@ -34,10 +35,27 @@
   (accumulate append nil (map proc seq)))
 
 
+(define (success lhs rhs)
+  (display "Success"))
+
+(define (failure lhs rhs)
+  (display "Failed!  ")
+  (display lhs)
+  (display "  =  ")
+  (display rhs))
+
 ;; test utils
+(define-syntax-rule (test-equal lhs rhs)
+  (let ((qlhs (quote lhs))
+        (qrhs (quote rhs)))
+    (cond [(equal? lhs rhs) (success qlhs qrhs)]
+          [else (failure qlhs qrhs)])
+    (newline)))
+
 
 (#%provide flatmap)
 (#%provide filter)
 (#%provide accumulate)
 (#%provide square)
 (#%provide cube)
+(#%provide test-equal)
