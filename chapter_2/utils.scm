@@ -1,5 +1,4 @@
 #lang sicp
-(#%require racket/provide)
 (#%require racket/base)
 
 (define (square x) (* x x))
@@ -36,7 +35,7 @@
 
 
 (define (success lhs rhs)
-  (display "Success"))
+  (display "Passed..."))
 
 (define (failure lhs rhs)
   (display "Failed!  ")
