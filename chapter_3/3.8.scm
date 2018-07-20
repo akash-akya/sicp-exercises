@@ -36,8 +36,8 @@
 (define (right-left)
   (define f (reset))
   (display "right-left: ")
-  (display (+ (f 1)    ;; same are evaluating (f 0) & (f 1) from right to left
-              (f 0))))
+  (display (+ (f 1)
+              (f 0))))  ;; same as evaluating (f 0) & (f 1) from right to left
 
 (left-right)
 (newline)
