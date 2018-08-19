@@ -2,11 +2,6 @@
 (#%require "utils.scm")
 (#%require "stream-utils.scm")
 
-(define ones (cons-stream 1 ones))
-
-(define integers
-  (cons-stream 1 (add-streams ones integers)))
-
 (define (interleave s1 s2)
   (if (stream-null? s1)
       s2
@@ -29,3 +24,5 @@
            (stream-cdr t)))))
 
 ;; test
+(define (test)
+  (display-stream-n (pairs integers integers) 20))

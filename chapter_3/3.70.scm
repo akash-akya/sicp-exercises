@@ -42,11 +42,6 @@
                    (merge-weighted s1 (stream-cdr s2) weight))))))))
 
 
-(define ones (cons-stream 1 ones))
-
-(define integers
-  (cons-stream 1 (add-streams ones integers)))
-
 (define (weighted-pairs s t weight)
   (cons-stream
    (list (stream-car s) (stream-car t))

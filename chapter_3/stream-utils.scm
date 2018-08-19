@@ -66,6 +66,11 @@
                pred
                (stream-cdr stream)))))
 
+(define ones (cons-stream 1 ones))
+
+(define integers
+  (cons-stream 1 (add-streams ones integers)))
+
 (#%provide stream-car)
 (#%provide stream-cdr)
 (#%provide stream-map)
@@ -76,3 +81,4 @@
 (#%provide display-stream-n)
 (#%provide stream-filter)
 (#%provide take-n)
+(#%provide integers)

@@ -16,11 +16,6 @@
 (define (stream-mul a b)
   (stream-map * a b))
 
-(define ones (cons-stream 1 ones))
-
-(define integers
-  (cons-stream 1 (add-streams ones integers)))
-
 (define (integrate-series coeffs)
   (stream-mul (stream-map (lambda (i) (/ 1 i)) integers)
               coeffs))
@@ -50,12 +45,6 @@
 
 
 ;; test
-(define (display-stream-n stream n)
-  (if (= n 0)
-      (newline)
-      (begin
-        (display (stream-car stream)) (display "  ")
-        (display-stream-n (stream-cdr stream) (- n 1)))))
 
 (define (accumulate-terms stream n)
   (if (= n 0)

@@ -7,11 +7,6 @@
 ;; S 0 + S 1 , S 0 + S 1 + S 2 , … . For example, (partial-sums
 ;; integers) should be the stream 1, 3, 6, 10, 15, ….
 
-(define ones (cons-stream 1 ones))
-
-(define integers
-  (cons-stream 1 (add-streams ones integers)))
-
 ;; Initial Version
 (define (partial-sums s)
   (define sums
