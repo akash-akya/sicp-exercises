@@ -35,20 +35,25 @@
 
 
 (define (success lhs rhs)
-  (display "Passed..."))
+  (display "✔ ")
+  (display lhs) (display " = ") (display rhs))
 
-(define (failure lhs rhs)
-  (display "Failed!  ")
-  (display lhs)
-  (display "  =  ")
-  (display rhs))
+(define (failure lhs rhs lhs-result rhs-result)
+  (display "✖ ")
+  (display lhs) (display " = ") (display rhs)
+  (newline)
+  (display "    Left  : ") (display lhs-result)
+  (newline)
+  (display "    Right : ") (display rhs-result))
 
 ;; test utils
 (define-syntax-rule (test-equal lhs rhs)
   (let ((qlhs (quote lhs))
-        (qrhs (quote rhs)))
-    (cond [(equal? lhs rhs) (success qlhs qrhs)]
-          [else (failure qlhs qrhs)])
+        (qrhs (quote rhs))
+        (lhs-result lhs)
+        (rhs-result rhs))
+    (cond [(equal? lhs-result rhs-result) (success qlhs qrhs)]
+          [else (failure qlhs qrhs lhs-result rhs-result)])
     (newline)))
 
 

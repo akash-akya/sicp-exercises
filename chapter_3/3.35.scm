@@ -51,6 +51,6 @@
 
   (forget-value! A 'user)
   (set-value! S 16 'user)
-  (test-equal (get-value A) 4))
+  (test-equal (get-value A) 5))
 
 (test-squarer)
