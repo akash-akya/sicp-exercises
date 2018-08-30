@@ -73,6 +73,14 @@
                 procedure))))
 
 
+(define (list-of-values exps env)
+  (if (no-operands? exps)
+      '()
+      (cons (my-eval (first-operand exps) env)
+            (list-of-values
+             (rest-operands exps)
+             env))))
+
 (define (eval-if exp env)
   (if (true? (my-eval (if-predicate exp) env))
       (my-eval (if-consequent exp) env)
@@ -144,23 +152,18 @@
 
 
 (define (lookup-in-frame frame variable)
-  ;; (display frame)
-  ;; (display " - ")
-  ;; (display variable)
-  ;; (newline)
   (define (lookup params args)
     (cond ((null? params) 'not-found)
           ((eq? (car params) variable)
            (car args))
           (else
-           (lookup (cdr params) (cdr args)))))
-  (lookup (params-from-frame frame) (args-from-frame frame)))
+           (lookup (cdr params) (cdr args) variable))))
+  (lookup-in-frame (params-from-frame frame) (args-from-frame frame)))
 
 (define (lookup-variable-value variable env)
   (cond ((null? env)
          (error "Variable not found"))
-        ((not (eq? (lookup-in-frame (get-frame env) variable)
-                   'not-found))
+        ((lookup-in-frame (get-frame env) variable)
          (lookup-in-frame (get-frame env) variable))
         (else
          (lookup-variable-value variable (cdr env)))))
@@ -208,7 +211,7 @@
   (nth (arguments exp) 0))
 
 (define (lambda-body exp)
-  (cons 'begin (cdr (arguments exp))))
+  (cadr (arguments exp)))
 
 (define (begin? exp)
   (eq? (function exp) 'begin))
@@ -331,8 +334,6 @@
 
 
 (define (define-variable! variable value env)
-  ;; (display variable) (display " - ") (display value) (display " - ") (display env)
-  ;; (newline)
   (set-car! env
             (make-frame
              (cons variable (params-from-frame (get-frame env)))
@@ -342,63 +343,8 @@
   (nth (arguments exp) 0))
 
 (define (definition-value exp)
-  (cons 'begin (cdr (arguments exp))))
+  (nth (arguments exp) 1))
 
 (define empty-env '((() ()) ()))
 
-(define (list-of-values exps env)
-  (if (no-operands? exps)
-      '()
-      (cons (my-eval (first-operand exps) env)
-            (list-of-values (rest-operands exps) env))))
-
-;; solution
-
-
-
 ;; test
-(define (test-left-to-right)
-  (set! list-of-values (lambda (exps env)
-                         (if (no-operands? exps)
-                             '()
-                             (let ((first (my-eval (first-operand exps) env)))
-                               (cons first
-                                     (list-of-values (rest-operands exps) env))))))
-
-  (define result (my-eval
-                  '(begin
-                     (define a 0)
-                     (define func
-                       (lambda (n)
-                         (set! a (+ (* 10 a) n))
-                         0))
-                     (+ (func 10) (func 20) (func 30))
-                     a)
-                  empty-env))
-  (test-equal result 1230))
-
-
-(define (test-right-to-left)
-  (set! list-of-values (lambda (exps env)
-                         (if (no-operands? exps)
-                             '()
-                             (let ((rest (list-of-values (rest-operands exps) env)))
-                               (cons (my-eval (first-operand exps) env)
-                                     rest)))))
-
-  (define result (my-eval
-                  '(begin
-                     (define a 0)
-                     (define func
-                       (lambda (n)
-                         (set! a (+ (* 10 a) n))
-                         0))
-                     (+ (func 10) (func 20) (func 30))
-                     a)
-                  empty-env))
-  (test-equal result 3210))
-
-
-(define (test)
-  (test-left-to-right)
-  (test-right-to-left))
