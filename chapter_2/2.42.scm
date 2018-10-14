@@ -1,5 +1,7 @@
 #lang sicp
 (#%require "utils.scm")
+
+
 ;; Exercise 2.42: The “eight-queens puzzle” asks how to place eight
 ;; queens on a chessboard so that no queen is in check from any
 ;; other (i.e., no two queens are in the same row, column, or
@@ -57,53 +59,16 @@
 ;; new queen is safe—the other queens are already guaranteed safe with
 ;; respect to each other.)
 
+;; helpers
 
-(define empty-board '(0 0 0 0 0 0 0 0))
+(define (filter predicate l)
+  (cond ((null? l) nil)
+        ((predicate (car l))
+         (cons (car l)
+               (filter predicate (cdr l))))
+        (else
+         (filter predicate (cdr l)))))
 
-(define (col board k)
-  (if (= k 0)
-      (car board)
-      (col (cdr board) (- k 1))))
-
-(define (row col k) (col col k))
-
-(define (get board c r)
-  (row (col board c) r))
-
-(define (set-nth l pos val)
-  (define (iter p l)
-    (cond ((null? l) nil)
-          ((= p pos) (cons val (cdr l)))
-          (else (cons (car l)
-                      (iter (+ p 1) (cdr l))))))
-  (iter 1 l))
-
-(define (adjoin-position row k rest)
-  (set-nth rest k row))
-
-(define (assign-pos l)
-  (define (iter i l)
-    (if (null? l)
-        nil
-        (cons (cons i (car l))
-              (iter (+ i 1)
-                    (cdr l)))))
-  (iter 1 l))
-
-(define (valid-diagonal col row rest)
-  (not
-   (null?
-    (filter
-     (lambda (p)
-       (= (abs (- (car p) col))
-          (abs (- (cdr p) row))))
-     (assign-pos rest)))))
-
-(define (safe? k positions)
-  (let ((row (car (reverse positions)))
-        (rest (cdr (reverse positions))))
-    (cond ((member row rest) #f)
-          ((valid-diagonal k row rest)))))
 
 (define (accumulate op initial l)
   (if (null? l)
@@ -124,6 +89,73 @@
 (define (flatmap proc seq)
   (accumulate append nil (map proc seq)))
 
+
+;;;;;
+
+(define empty-board '((- - - - - - - -)
+                      (- - - - - - - -)
+                      (- - - - - - - -)
+                      (- - - - - - - -)
+                      (- - - - - - - -)
+                      (- - - - - - - -)
+                      (- - - - - - - -)
+                      (- - - - - - - -)))
+
+(define (set-nth l pos val)
+  (define (iter p l)
+    (cond ((null? l) nil)
+          ((= p pos) (cons val (cdr l)))
+          (else (cons (car l)
+                      (iter (+ p 1) (cdr l))))))
+  (iter 1 l))
+
+(define (get-nth l pos)
+  (define (iter i l)
+    (cond ((null? l) nil)
+          ((= i pos) (car l))
+          (else (iter (+ 1 i) (cdr l)))))
+  (iter 1 l))
+
+(define (find-row c board)
+  (define (iter i b)
+    (cond ((null? b) (error "Row not found"))
+          ((eq? (get-nth (car b) c) 'x) i)
+          (else (iter (+ i 1) (cdr b)))))
+  (iter 1 board))
+
+(define (getval r c board)
+  (get-nth (get-nth board r) c))
+
+(define (adjoin-position r k rest)
+  (let ((row (get-nth rest r)))
+    (set-nth rest r (set-nth row k 'x))))
+
+(define (checker r c y x board)
+  (define (iter r c)
+    (cond ((or (> c 8) (> r 8)) #t)
+          ((or (< c 1) (< r 1)) #t)
+          ((eq? (getval r c board) 'x) #f)
+          (else (iter (+ r y)
+                      (+ c x)))))
+  (iter (+ r y) (+ c x)))
+
+(define (check-diagonal r c board)
+  (and
+   (checker r c  1  1 board)
+   (checker r c -1 -1 board)
+   (checker r c  1 -1 board)
+   (checker r c -1  1 board)))
+
+(define (queens-count l)
+  (length (filter (lambda (a) (eq? a 'x)) l)))
+
+
+(define (safe? k positions)
+  (let ((r (find-row k positions)))
+    ;; (display "Row: ") (display r) (newline)
+    (let ((row (get-nth positions r)))
+      (and (= (queens-count row) 1)
+           (check-diagonal r k positions)))))
 
 (define (queens board-size)
   (define (queen-cols k)
@@ -146,10 +178,57 @@
   (queen-cols board-size))
 
 
+(define (display-board b)
+  (map (lambda (r) (display r) (newline))
+       b)
+  nil)
+
+(define (display-all possibilities)
+  (map (lambda (b) (display-board b) (newline))
+       possibilities)
+  nil)
 
 ;; test
-;; (define (test)
-;;   (cond (( )
-;;          (display "Test passed"))
-;;         (else (display "Test failed")))
-;;   (newline))
+
+(define (test)
+  (test-equal (safe? 5 '((0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 x 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)))
+    #t)
+
+  (test-equal (safe? 5 '((0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (x 0 0 0 x 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)))
+    #f)
+
+  (test-equal (safe? 5 '((0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 x 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (x 0 0 0 0 0 0 0)))
+    #f)
+
+  (test-equal (safe? 7 '((0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 x 0)
+                         (0 0 0 0 0 0 0 x)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)
+                         (0 0 0 0 0 0 0 0)))
+    #f)
+
+  (test-equal (length (queens 8)) 92))
