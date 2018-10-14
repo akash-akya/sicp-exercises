@@ -58,7 +58,7 @@
 ;; respect to each other.)
 
 
-(define empty-board nil)
+(define empty-board '(0 0 0 0 0 0 0 0))
 
 (define (col board k)
   (if (= k 0)
@@ -70,11 +70,60 @@
 (define (get board c r)
   (row (col board c) r))
 
-(define (set board c r val)
-  ())
+(define (set-nth l pos val)
+  (define (iter p l)
+    (cond ((null? l) nil)
+          ((= p pos) (cons val (cdr l)))
+          (else (cons (car l)
+                      (iter (+ p 1) (cdr l))))))
+  (iter 1 l))
 
 (define (adjoin-position row k rest)
-  ())
+  (set-nth rest k row))
+
+(define (assign-pos l)
+  (define (iter i l)
+    (if (null? l)
+        nil
+        (cons (cons i (car l))
+              (iter (+ i 1)
+                    (cdr l)))))
+  (iter 1 l))
+
+(define (valid-diagonal col row rest)
+  (not
+   (null?
+    (filter
+     (lambda (p)
+       (= (abs (- (car p) col))
+          (abs (- (cdr p) row))))
+     (assign-pos rest)))))
+
+(define (safe? k positions)
+  (let ((row (car (reverse positions)))
+        (rest (cdr (reverse positions))))
+    (cond ((member row rest) #f)
+          ((valid-diagonal k row rest)))))
+
+(define (accumulate op initial l)
+  (if (null? l)
+      initial
+      (op (car l)
+          (accumulate op
+                      initial
+                      (cdr l)))))
+
+(define (enumerate-interval low high)
+  (if (> low high)
+      nil
+      (cons low
+            (enumerate-interval
+             (+ low 1)
+             high))))
+
+(define (flatmap proc seq)
+  (accumulate append nil (map proc seq)))
+
 
 (define (queens board-size)
   (define (queen-cols k)

@@ -6,21 +6,21 @@
 (define (cube x) (* x x x))
 
 ;; helper functions
-(define (filter predicate list)
-  (cond ((null? list) nil)
-        ((predicate (car list))
-         (cons (car list)
-               (filter predicate (cdr list))))
+(define (filter predicate l)
+  (cond ((null? l) nil)
+        ((predicate (car l))
+         (cons (car l)
+               (filter predicate (cdr l))))
         (else
-         (filter predicate (cdr list)))))
+         (filter predicate (cdr l)))))
 
-(define (accumulate op initial sequence)
-  (if (null? sequence)
+(define (accumulate op initial l)
+  (if (null? l)
       initial
-      (op (car sequence)
+      (op (car l)
           (accumulate op
                       initial
-                      (cdr sequence)))))
+                      (cdr l)))))
 
 (define (enumerate-interval low high)
   (if (> low high)
@@ -58,3 +58,4 @@
 (#%provide square)
 (#%provide cube)
 (#%provide test-equal)
+(#%provide enumerate-interval)
