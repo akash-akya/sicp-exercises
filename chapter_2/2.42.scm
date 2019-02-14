@@ -188,6 +188,9 @@
        possibilities)
   nil)
 
+(#%provide queens)
+
+
 ;; test
 
 (define (test)
