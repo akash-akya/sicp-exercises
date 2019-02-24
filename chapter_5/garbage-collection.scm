@@ -1,8 +1,6 @@
 #lang sicp
 
 (#%require "utils.scm")
-(#%require rackunit)
-(#%require rackunit/text-ui)
 
 ;; Machine
 (define (make-machine register-names
@@ -463,14 +461,12 @@
      (goto (label test-b))
      gcd-done)))
 
+
+
 ;; test
-(define tests
-  (test-suite
-   "Machine tests"
-   (set-register-contents! gcd-machine 'a 206)
-   (set-register-contents! gcd-machine 'b 40)
-   (start gcd-machine)
+(define (test)
+  (set-register-contents! gcd-machine 'a 206)
+  (set-register-contents! gcd-machine 'b 40)
+  (start gcd-machine)
 
-   (check-equal? (get-register-contents gcd-machine 'a) 2)))
-
-(run-tests tests)
+  (test-equal (get-register-contents gcd-machine 'a) 2))

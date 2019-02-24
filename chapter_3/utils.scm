@@ -1,5 +1,8 @@
 #lang sicp
 (#%require racket/base)
+;; (#%require (only racket/base print-as-expression print-mpair-curly-braces))
+(print-as-expression #f)
+(print-mpair-curly-braces #f)
 
 (define (square x) (* x x))
 

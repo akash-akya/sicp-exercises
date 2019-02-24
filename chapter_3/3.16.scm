@@ -1,5 +1,7 @@
 #lang sicp
 (#%require "utils.scm")
+(#%require rackunit)
+(#%require rackunit/text-ui)
 
 ;; Exercise 3.16: Ben Bitdiddle decides to write a procedure to count
 ;; the number of pairs in any list structure. “It’s easy,” he
@@ -45,3 +47,12 @@
 (newline)
 
 ;; (set! test-list (set-car! test-list b))
+
+(define tests
+  (test-suite
+   "Dummy tests"
+
+   (check-equal? 1 1 "Something true")
+   (check-equal? 2 2 "Something false")))
+
+(run-tests tests)
