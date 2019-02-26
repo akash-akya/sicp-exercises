@@ -1,5 +1,8 @@
 #lang sicp
+
 (#%require "utils.scm")
+(#%require rackunit)
+(#%require rackunit/text-ui)
 
 (define (my-eval exp env)
   (cond ((self-evaluating? exp)
@@ -398,3 +401,17 @@
              (procedure-body object)
              '<procedure-env>))
       (display object)))
+
+
+;; test
+(define exp '(begin
+               (define (func x) (func x))
+               (define (test-func a b) b)
+               (test-func (func 10) 20)))
+
+(define tests
+  (test-suite
+   "Test lazy evaluator"
+   (check-equal? (actual-value exp the-global-environment) 20)))
+
+(run-tests tests)
