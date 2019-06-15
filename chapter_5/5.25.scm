@@ -110,13 +110,12 @@
           (if (null? insts)
               'done
               (begin
-                                (if (pair? insts)
-                    (if (pair? (car insts))
-                        (display (caar insts))
-                        (display (car insts)))
-                    (display insts))
-                (newline)
-
+                ;; (if (pair? insts)
+                ;;     (if (pair? (car insts))
+                ;;         (display (caar insts))
+                ;;         (display (car insts)))
+                ;;     (display insts))
+                ;; (newline)
                 ((instruction-execution-proc
                   (car insts)))
                 (execute)))))
@@ -336,7 +335,6 @@
 
 (define (make-goto inst machine labels pc)
   (let ((dest (goto-dest inst)))
-    (display (label-exp? dest)) (newline)
     (cond ((label-exp? dest)
            (let ((insts
                   (lookup-label
@@ -463,9 +461,10 @@
         (error "Unknown operation: ASSEMBLE"
                symbol))))
 
-(define (tagged-list? pair sym)
-  (eq? (car pair) sym))
-
+(define (tagged-list? exp tag)
+  (if (pair? exp)
+      (eq? (car exp) tag)
+      false))
 
 (define (make-procedure parameters body env)
   (list 'procedure parameters body env))
@@ -636,15 +635,16 @@
 (define primitive-procedures
   (list (list 'car car)
         (list 'cdr cdr)
+        (list 'set-car! set-car!)
+        (list 'set-cdr! set-cdr!)
         (list 'cons cons)
         (list 'null? null?)
         (list 'eq? eq?)
-                (list '/ /)
-        (list '=  =)
+        (list '/ /)
+        (list '=  (lambda (x y) (if (= x y) 'true 'false)))
         (list '+ +)
         (list '- -)
         (list '* *)
-
         (list 'display display)))
 
 (define (primitive-procedure-names)
@@ -692,8 +692,7 @@
 ;;   (driver-loop))
 
 (define (prompt-for-input string)
-  (newline) (newline)
-  (display string) (newline))
+  (newline) (display string) (newline))
 
 (define (announce-output string)
   (display string))
@@ -727,6 +726,38 @@
 
 (define (else? exp)
   (eq? exp 'else))
+
+;; normal order
+(define (delay-it exp env)
+  (list 'thunk exp env))
+(define (thunk? obj) (tagged-list? obj 'thunk))
+(define (thunk-exp thunk) (cadr thunk))
+(define (thunk-env thunk) (caddr thunk))
+
+(define (evaluated-thunk? obj)
+  (tagged-list? obj 'evaluated-thunk))
+
+(define (thunk-value evaluated-thunk)
+  (cadr evaluated-thunk))
+
+(define (set-evaluated obj result)
+  (set-car! obj 'evaluated-thunk)
+  ;; replace exp with its value:
+  (set-car! (cdr obj) result)
+  ;; forget unneeded env:
+  (set-cdr! (cdr obj) '())
+  result)
+
+
+(define (list-of-delayed-args exps env)
+  (if (no-operands? exps)
+      '()
+      (cons (delay-it
+             (first-operand exps)
+             env)
+            (list-of-delayed-args
+             (rest-operands exps)
+             env))))
 
 (define eceval
   (make-machine
@@ -800,8 +831,15 @@
     (list 'else? else?)
     (list 'display (lambda (x) (display x) (newline)))
 
-    ;; (list 'print-result print-result)
-    )
+    (list 'delay-it delay-it)
+    (list 'thunk? thunk?)
+    (list 'thunk-exp thunk-exp)
+    (list 'thunk-env thunk-env)
+    (list 'evaluated-thunk? evaluated-thunk?)
+    (list 'thunk-value thunk-value)
+    (list 'set-evaluated set-evaluated)
+    (list 'list-of-delayed-args list-of-delayed-args)
+    (list 'reverse reverse))
 
    '(read-eval-print-loop
      (perform (op initialize-stack))
@@ -813,7 +851,7 @@
      (goto (label eval-dispatch))
 
      eval-dispatch
-     (perform (op display) (reg exp))
+     ;; (perform (op display) (reg exp))
      (test (op self-evaluating?) (reg exp))
      (branch (label ev-self-eval))
      (test (op variable?) (reg exp))
@@ -864,73 +902,136 @@
              (reg env))
      (goto (reg continue))
 
-     ev-application
+
+
+     ;;;
+     ;;;  actual-value
+     ;;;
+     actual-value
+     (save exp)
+     (save env)
      (save continue)
+     (assign continue (label after-actual-value-eval))
+     (goto (label eval-dispatch))
+
+     after-actual-value-eval
+     (assign exp (reg val))
+     (assign continue (label after-actual-value))
+     (goto (label force-it))
+
+     after-actual-value
+     (restore continue)
+     (restore env)
+     (restore exp)
+     (goto (reg continue))
+
+
+     ;;;
+     ;;;  force-it
+     ;;;
+     force-it
+     (save continue)
+     (assign continue (label after-force-it))
+     (test (op thunk?) (reg exp))
+     (branch (label force-thunk))
+     (test (op evaluated-thunk?) (reg exp))
+     (branch (label thunk-value))
+     (assign val (reg exp))
+     (goto (label after-force-it))
+
+
+     force-thunk
+     (save exp)
+     (assign env (op thunk-env) (reg exp))
+     (assign exp (op thunk-exp) (reg exp))
+     (save continue)
+     (assign continue (label after-force-thunk))
+     (goto (label actual-value))
+
+     after-force-thunk
+     (restore continue)
+     (restore exp)
+     (assign val (op set-evaluated)
+             (reg exp)
+             (reg val))
+     (goto (reg continue))
+
+
+     thunk-value
+     (assign val (op thunk-value) (reg exp))
+     (goto (reg continue))
+
+
+     after-force-it
+     (restore continue)
+     (goto (reg continue))
+
+
+     ;; apply
+
+     ev-application
+     (save continue) ;; save what to-do after applying exp
+
+
      (save env)
-     (assign unev (op operands) (reg exp))
-     (save unev)
+     (save exp)
+
+     (assign continue (label apply-after-actual-value))
      (assign exp (op operator) (reg exp))
-     (assign
-      continue (label ev-appl-did-operator))
-     (goto (label eval-dispatch))
+     (goto (label actual-value))
 
-
-     ev-appl-did-operator
-     (restore unev)             ; the operands
+     apply-after-actual-value
+     (restore exp)
      (restore env)
-     (assign argl (op empty-arglist))
+
+     (assign argl (op operands) (reg exp))
+     ;; (assign exp (reg val))
      (assign proc (reg val))    ; the operator
-     (test (op no-operands?) (reg unev))
-     (branch (label apply-dispatch))
-     (save proc)
 
-
-     ev-appl-operand-loop
-     (save argl)
-     (assign exp
-             (op first-operand)
-             (reg unev))
-     (test (op last-operand?) (reg unev))
-     (branch (label ev-appl-last-arg))
-     (save env)
-     (save unev)
-     (assign continue
-             (label ev-appl-accumulate-arg))
-     (goto (label eval-dispatch))
-
-     ev-appl-accumulate-arg
-     (restore unev)
-     (restore env)
-     (restore argl)
-     (assign argl
-             (op adjoin-arg)
-             (reg val)
-             (reg argl))
-     (assign unev
-             (op rest-operands)
-             (reg unev))
-     (goto (label ev-appl-operand-loop))
-
-     ev-appl-last-arg
-     (assign continue
-             (label ev-appl-accum-last-arg))
-     (goto (label eval-dispatch))
-     ev-appl-accum-last-arg
-     (restore argl)
-     (assign argl
-             (op adjoin-arg)
-             (reg val)
-             (reg argl))
-     (restore proc)
-     (goto (label apply-dispatch))
-
-
-     apply-dispatch
      (test (op primitive-procedure?) (reg proc))
-     (branch (label primitive-apply))
+     (branch (label list-of-arg-values))
      (test (op compound-procedure?) (reg proc))
      (branch (label compound-apply))
      (goto (label unknown-procedure-type))
+
+
+     list-of-arg-values
+     ;; (save exp)
+     (save proc)
+     (save env)
+     (assign argl (op reverse) (reg argl))
+     ;; (perform (op display) (reg argl))
+     (assign unev (op empty-arglist))
+     ;; (assign continue (label start-arg-values))
+
+     start-arg-values
+     ;; (perform (op display) (reg argl))
+     ;; (perform (op display) (reg unev))
+
+     (test (op no-operands?) (reg argl))
+     (branch (label after-list-of-arg-values))
+     (save unev)
+     (save argl)
+     (save env)
+     (assign exp (op first-operand) (reg argl))
+     (assign continue (label cons-arg-list))
+     (goto (label actual-value))
+
+     cons-arg-list
+     (restore env)
+     (restore argl)
+     (restore unev)
+     (assign unev (op make-frame) (reg val) (reg unev))
+     (assign argl (op rest-operands) (reg argl))
+     (assign continue (label start-arg-values))
+     (goto (label start-arg-values))
+
+     after-list-of-arg-values
+     (restore env)
+     (restore proc)
+     ;; (restore exp)
+     (assign argl (reg unev))
+     (goto (label primitive-apply))
 
      primitive-apply
      (assign val (op apply-primitive-procedure)
@@ -939,6 +1040,7 @@
      (restore continue)
      (goto (reg continue))
 
+
      compound-apply
      (assign unev
              (op procedure-parameters)
@@ -946,6 +1048,10 @@
      (assign env
              (op procedure-environment)
              (reg proc))
+     (assign argl
+             (op list-of-delayed-args)
+             (reg argl)
+             (reg env))
      (assign env
              (op extend-environment)
              (reg unev)
@@ -990,9 +1096,21 @@
      (save exp)   ; save expression for later
      (save env)
      (save continue)
-     (assign continue (label ev-if-decide))
      (assign exp (op if-predicate) (reg exp))
-                                        ; evaluate the predicate:
+     (assign continue (label after-if))
+     (goto (label actual-value))
+
+     after-if
+     (restore continue)
+     (restore env)
+     (restore exp)
+
+     (save exp)   ; save expression for later
+     (save env)
+     (save continue)
+
+     (assign continue (label ev-if-decide))
+     (assign exp  (reg val))
      (goto (label eval-dispatch))
 
      ev-if-decide
@@ -1007,7 +1125,6 @@
      ev-if-consequent
      (assign exp (op if-consequent) (reg exp))
      (goto (label eval-dispatch))
-
 
      ev-assignment
      (assign unev
