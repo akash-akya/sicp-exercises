@@ -322,7 +322,8 @@
         (list 'null? null?)
         (list '+ +)
         (list '- -)
-        (list '* *)))
+        (list '* *)
+        (list '= =)))
 
 (define (primitive-procedure-objects)
   (map (lambda (proc)
@@ -373,8 +374,10 @@
          (thunk-value obj))
         (else obj)))
 
-(define input-prompt  ";;; L-Eval input:")
-(define output-prompt ";;; L-Eval value:")
+(define input-prompt  "\n;;; L-Eval input:\n")
+(define output-prompt ";;; L-Eval value:\n")
+
+;; (define (read-line))
 
 (define (driver-loop)
   (prompt-for-input input-prompt)
@@ -387,11 +390,10 @@
   (driver-loop))
 
 (define (prompt-for-input string)
-  (newline) (newline)
-  (display string) (newline))
+  (display string))
 
 (define (announce-output string)
-  (newline) (display string) (newline))
+  (display string))
 
 (define (user-print object)
   (if (compound-procedure? object)
